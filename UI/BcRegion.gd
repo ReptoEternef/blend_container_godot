@@ -20,6 +20,13 @@ var layer_end_percent: float
 var stream_layer: StreamLayer
 var region_name: String
 
+# VARIABLES FOR FADES
+var fade_in_px: float
+var fade_out_px: float
+var dragging_fade_in = false
+var dragging_fade_out = false
+var handle_hit_radius = 10.0
+
 func _ready():
 	custom_minimum_size.x = min_window_size
 	tooltip_text = region_name
@@ -40,6 +47,23 @@ func _draw():
 		11,                      # taille de la font
 		Color.WHITE
 	)
+	
+	_draw_fades()
+
+func _draw_fades():
+	var fade_in_px  = percent_to_px(stream_layer.fade_in_range, size.x)
+	var fade_out_px = percent_to_px(stream_layer.fade_out_range, size.x)
+
+	var bottom_left  = Vector2(0, size.y)
+	var bottom_right = Vector2(size.x, size.y)
+	var fade_in_handle  = Vector2(fade_in_px, 0)
+	var fade_out_handle = Vector2(size.x - fade_out_px, 0)
+
+	draw_line(bottom_left, fade_in_handle, Color.WHITE, 1.5)
+	draw_line(fade_out_handle, bottom_right, Color.WHITE, 1.5)
+	draw_circle(fade_in_handle, 5.0, Color.WHITE)
+	draw_circle(fade_out_handle, 5.0, Color.WHITE)
+
 
 func _notification(what):
 	if what == NOTIFICATION_RESIZED:
@@ -58,8 +82,8 @@ func update_region_data():
 	var layer_start_px = position.x
 	var layer_end_px = layer_start_px + size.x
 	
-	layer_start_percent = px_to_percent(layer_start_px)
-	layer_end_percent = px_to_percent(layer_end_px)
+	layer_start_percent = px_to_percent(layer_start_px, get_parent_area_size().x)
+	layer_end_percent = px_to_percent(layer_end_px, get_parent_area_size().x)
 	stream_layer.min_value = layer_start_percent
 	stream_layer.max_value = layer_end_percent
 	
@@ -73,14 +97,14 @@ func update_region_data():
 	#print('START : ', stream_layer.min_value, ' / END : ', stream_layer.max_value)
 
 func px_to_rtpc(raw_value) -> float:
-	var to_percent = px_to_percent(raw_value)
+	var to_percent = px_to_percent(raw_value, get_parent_area_size().x)
 	#print(region_name, ' percent : ', to_percent)
 	var to_rtpc = percent_to_rtpc(to_percent)
 	#print(region_name, ' rtpc : ', to_rtpc)
 	return to_rtpc
 
-func px_to_percent(raw_value) -> float:
-	var parent_raw_size = get_parent_area_size().x
+func px_to_percent(raw_value: float, parent_raw_size: float) -> float:
+	#var parent_raw_size = get_parent_area_size().x
 	var percent
 	if raw_value > 0:
 		percent = (100 * raw_value) / parent_raw_size
@@ -91,6 +115,18 @@ func px_to_percent(raw_value) -> float:
 	else:
 		percent = 0
 	return percent
+	
+func percent_to_px(percent: float, parent_raw_size: float) -> float:
+	var raw_value
+	if percent > 0:
+		raw_value = (percent * parent_raw_size) / 100
+		if raw_value <= 0:
+			raw_value = 0
+		elif raw_value >= parent_raw_size:
+			raw_value = parent_raw_size
+	else:
+		raw_value = 0
+	return raw_value
 
 func percent_to_rtpc(x) -> float:
 	if parent_track == null or parent_track.rtpc_parameter == null:
@@ -117,9 +153,17 @@ func _gui_input(event: InputEvent) -> void:
 	panel_size = self.get_rect().size
 	panel_pos = self.get_rect().position
 	
-	# defines whether we move or resize
+	# defines whether we move, resize or drag a fade handle
 	if event is InputEventMouseButton and event.button_index == MOUSE_BUTTON_LEFT:
-		if event.position.x < border_size:
+		if event.pressed:
+			move_to_front()
+		# fade handles are tested first so they take priority over the edges
+		var handle = get_hovered_handle(event.position)
+		if handle == "fade_in":
+			dragging_fade_in = event.pressed
+		elif handle == "fade_out":
+			dragging_fade_out = event.pressed
+		elif event.position.x < border_size:
 			dragging_left = event.pressed
 		elif event.position.x > (panel_size.x - border_size):
 			dragging_right = event.pressed
@@ -129,7 +173,11 @@ func _gui_input(event: InputEvent) -> void:
 	
 	# changes cursor depending on drag type
 	if event is InputEventMouseMotion:
-		if event.position.x < border_size or dragging_left:
+		# fade handle hover takes priority over the edges
+		var handle = get_hovered_handle(event.position)
+		if handle != "" or dragging_fade_in or dragging_fade_out:
+			mouse_default_cursor_shape = Control.CURSOR_POINTING_HAND
+		elif event.position.x < border_size or dragging_left:
 			mouse_default_cursor_shape = Control.CURSOR_HSIZE
 		elif event.position.x > (panel_size.x - border_size) or dragging_right:
 			mouse_default_cursor_shape = Control.CURSOR_HSIZE
@@ -137,6 +185,20 @@ func _gui_input(event: InputEvent) -> void:
 			mouse_default_cursor_shape = Control.CURSOR_DRAG
 		elif not dragging_left and not dragging_right and not dragging_move:
 			mouse_default_cursor_shape = Control.CURSOR_ARROW
+	
+	# drag the fade in handle (distance from the left edge)
+	if event is InputEventMouseMotion and dragging_fade_in:
+		var fade_in_px = clamp(event.position.x, 0, size.x - percent_to_px(stream_layer.fade_out_range, size.x))
+		stream_layer.fade_in_range = px_to_percent(fade_in_px, size.x)
+		stream_layer.emit_changed()
+		queue_redraw()
+	
+	# drag the fade out handle (distance from the right edge)
+	if event is InputEventMouseMotion and dragging_fade_out:
+		var fade_out_px = clamp(size.x - event.position.x, 0, size.x - percent_to_px(stream_layer.fade_in_range, size.x))
+		stream_layer.fade_out_range = px_to_percent(fade_out_px, size.x)
+		stream_layer.emit_changed()
+		queue_redraw()
 	
 	# change size and position to drag from the left side
 	if event is InputEventMouseMotion and dragging_left:
@@ -161,3 +223,24 @@ func _gui_input(event: InputEvent) -> void:
 		position.x += event.relative.x
 		position.x = clamp(position.x, 0, get_parent().size.x - size.x)
 		update_region_data()
+
+func _input(event: InputEvent) -> void:
+	# global safety net: if the left button is released anywhere, stop every drag
+	if event is InputEventMouseButton and event.button_index == MOUSE_BUTTON_LEFT and not event.pressed:
+		dragging_left = false
+		dragging_right = false
+		dragging_move = false
+		dragging_fade_in = false
+		dragging_fade_out = false
+
+func get_hovered_handle(mouse_pos: Vector2) -> String:
+	var fade_in_px  = percent_to_px(stream_layer.fade_in_range, size.x)
+	var fade_out_px = percent_to_px(stream_layer.fade_out_range, size.x)
+	var fade_in_handle  = Vector2(fade_in_px, 0)
+	var fade_out_handle = Vector2(size.x - fade_out_px, 0)
+
+	if mouse_pos.distance_to(fade_in_handle) <= handle_hit_radius:
+		return "fade_in"
+	elif mouse_pos.distance_to(fade_out_handle) <= handle_hit_radius:
+		return "fade_out"
+	return ""

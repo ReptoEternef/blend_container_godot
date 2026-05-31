@@ -24,13 +24,12 @@ func update_blend(value: float, rtpc_label: String) -> void:
 	var rtpc = get_rtpc(rtpc_label)
 	for layer in stream_layers:
 		if is_in_range(layer, value):
-			main_stream.set_sync_stream_volume(layer.index, BcUtils.to_db(100))
-			
-			#var fade_result = layer.in_fade(value)
-			#if fade_result[0]:
-				#print('play sound')
-				#var fade_value = layer.calc_fade_volume(fade_result[1], value, rtpc.previous_value)
-				#main_stream.set_sync_stream_volume(layer.index, BcUtils.to_db(fade_value))
+			var fade_result = layer.in_fade(value)
+			if fade_result[0]:
+				var fade_value = layer.calc_fade_volume(fade_result[1], value, rtpc.previous_value)
+				main_stream.set_sync_stream_volume(layer.index, BcUtils.to_db(fade_value))
+			else:
+				main_stream.set_sync_stream_volume(layer.index, BcUtils.to_db(100))
 		else:
 			main_stream.set_sync_stream_volume(layer.index, BcUtils.to_db(0))
 	rtpc.previous_value = value

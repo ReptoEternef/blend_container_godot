@@ -29,21 +29,14 @@ func set_range(min_value: float, max_value: float, fade_in_length: float, fade_o
 	self.fade_out_range = fade_out_length
 
 func in_fade_in(value: float) -> bool:
-	#print('calc in')
-	if value <= (self.min_value + self.fade_in_range) and value >= self.min_value:
-		#print('fade IN range at ', value)
-		return true
-	return false
+	var fade_in_abs = get_range() * (fade_in_range / 100.0)
+	return value >= min_value and value <= (min_value + fade_in_abs)
 
-func in_fade_out(value) -> bool:
-	#print('calc out')
-	if value >= (self.max_value - self.fade_out_range) and value <= self.max_value:
-		#print('fade OUT range at ', value)
-		return true
-	return false
+func in_fade_out(value: float) -> bool:
+	var fade_out_abs = get_range() * (fade_out_range / 100.0)
+	return value >= (max_value - fade_out_abs) and value <= max_value
 
 func in_fade(value) -> Array:
-	#print('in fade')
 	if self.in_fade_in(value):
 		return [true, 'fade_in']
 	elif in_fade_out(value):
@@ -51,29 +44,17 @@ func in_fade(value) -> Array:
 	else:
 		return [false, '']
 
+
 func calc_fade_volume(fade_type: String, value: float, previous_value: float):
-	#print('calc fade')
 	if fade_type == 'fade_in':
-		if self.fade_in_range > 0:
-			var min_fade_end = self.min_value + self.fade_in_range
-			return (value - self.min_value) / (min_fade_end - self.min_value) * 100
-		elif value <= 0:
-			return 100
-		elif value > previous_value:
-			print(value, ' / ', self.min_value)
-			return 100
-		elif value < previous_value:
-			print(value, ' / ', self.min_value)
-			return 0
+		var fade_in_abs = get_range() * (fade_in_range / 100.0)
+		if fade_in_abs > 0:
+			return clamp((value - min_value) / fade_in_abs * 100.0, 0.0, 100.0)
+		else:
+			return 100.0
 	elif fade_type == 'fade_out':
-		if self.fade_out_range > 0:
-			var min_fade_start = self.max_value - self.fade_out_range
-			return (value - self.max_value) / (min_fade_start - self.max_value) * 100
-		elif value >= 100:
-			return 100
-		elif value > previous_value:
-			print(value, ' / ', self.min_value)
-			return 0
-		elif value < previous_value:
-			print(value, ' / ', self.min_value)
-			return 100
+		var fade_out_abs = get_range() * (fade_out_range / 100.0)
+		if fade_out_abs > 0:
+			return clamp((max_value - value) / fade_out_abs * 100.0, 0.0, 100.0)
+		else:
+			return 100.0

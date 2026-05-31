@@ -34,8 +34,8 @@ func init_regions(bc: BlendContainer):
 	var stream_layers = blend_container.stream_layers
 	#print('--- INIT REGION ---')
 	for layer in stream_layers:
-		tracks[0].add_region(layer.file_name, layer.min_value, layer.max_value, layer)
+		tracks[0].add_region(layer.file_name, layer.min_value, layer.max_value, layer.fade_in_range, layer.fade_out_range, layer)
 	
 	if stream_layers.size() < 1 and blend_container.debug == true:
 		print('debug')
-		tracks[0].add_region('debug region', 0.0, 50.0, StreamLayer.new())
+		tracks[0].add_region('debug region', 0.0, 50.0, 10, 10, StreamLayer.new())

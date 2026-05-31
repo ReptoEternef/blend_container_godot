@@ -118,21 +118,20 @@ func _on_rtpc_selected(id: int) -> void:
 	#ruler.rtpc = rtpc_parameter
 	#ruler.queue_redraw()
 
-func add_region(region_name: String, start_value: float, end_value: float, layer: StreamLayer) -> void:
-	#print('Add region')
+func add_region(region_name: String, start_value: float, end_value: float, fade_in_range: float, fade_out_range: float, layer: StreamLayer) -> void:
 	if is_nan(start_value):
 		start_value = 0
 	if end_value == 0:
 		end_value = 10
-	
-	#print('Region name : ', region_name, ' | ', 'Start value : ', start_value, ' | ', 'End value : ', end_value)
+
 	var region = BcRegion.new()
 	region.parent_track = self
 	region.position = Vector2(start_value, 0)
 	region.size = Vector2(end_value, REGIONS_HEIGHT)
-	region.region_name = region_name;
+	region.region_name = region_name
 	region.stream_layer = layer
-	#region.stream_layer.layer_region = region
 	layer.min_value = start_value
 	layer.max_value = end_value
+	layer.fade_in_range = fade_in_range
+	layer.fade_out_range = fade_out_range
 	regions_container.add_child(region)
