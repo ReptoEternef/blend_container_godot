@@ -1,0 +1,27 @@
+[gd_scene format=3 uid="uid://keyy17rd6sul"]
+
+[ext_resource type="Script" uid="uid://ca5svb43da1td" path="res://addons/blend_container/UI/BcTracksContainer.gd" id="1_jvm3g"]
+
+[node name="BlendContainerUI" type="VBoxContainer" unique_id=39290842]
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+size_flags_horizontal = 3
+size_flags_vertical = 3
+
+[node name="Create Region" type="Button" parent="." unique_id=1209766002]
+visible = false
+layout_mode = 2
+text = "create region"
+
+[node name="Create Track" type="Button" parent="." unique_id=337805458]
+layout_mode = 2
+text = "create track"
+
+[node name="BcTracksContainer" type="VBoxContainer" parent="." unique_id=1444589677]
+custom_minimum_size = Vector2(2, 0)
+layout_mode = 2
+script = ExtResource("1_jvm3g")
+metadata/_custom_type_script = "uid://ca5svb43da1td"
