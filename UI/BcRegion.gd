@@ -19,6 +19,7 @@ var layer_end_percent: float
 
 var stream_layer: StreamLayer
 var region_name: String
+var bg_color: Color
 
 # VARIABLES FOR FADES
 var fade_in_px: float
@@ -30,11 +31,12 @@ var handle_hit_radius = 10.0
 func _ready():
 	custom_minimum_size.x = min_window_size
 	tooltip_text = region_name
+	bg_color = Color.from_hsv(randf(), 0.6, 0.8, 0.6)
 	get_parent().resized.connect(apply_position_from_layer, CONNECT_ONE_SHOT)
 
 func _draw():
 	# Fond
-	draw_rect(Rect2(Vector2.ZERO, size), Color(0.2, 0.4, 0.8, 0.6))
+	draw_rect(Rect2(Vector2.ZERO, size), bg_color)
 	# Bord
 	draw_rect(Rect2(Vector2.ZERO, size), Color.WHITE, false, 1.5)
 	
@@ -93,7 +95,7 @@ func update_region_data():
 	stream_layer.emit_changed()
 	EditorInterface.mark_scene_as_unsaved()
 	
-	update_topbar_infos()
+	update_topbar_position_infos()
 	#print('START : ', stream_layer.min_value, ' / END : ', stream_layer.max_value)
 
 func px_to_rtpc(raw_value) -> float:
@@ -141,11 +143,11 @@ func rtpc_to_percent(x) -> float:
 	return calc
 
 
-func update_topbar_infos():
+func update_topbar_position_infos():
 	#print('updates top bar : ', layer_start_rtpc, ' ; ', layer_end_rtpc)
 	var values_text = "%.2f ; %.2f" % [layer_start_rtpc, layer_end_rtpc]
 	parent_track.region_values.text = values_text
-	parent_track.region_label.text = region_name
+	parent_track.region_selector.text = region_name
 
 
 
@@ -169,7 +171,7 @@ func _gui_input(event: InputEvent) -> void:
 			dragging_right = event.pressed
 		else:
 			dragging_move = event.pressed
-			update_region_data()
+			update_topbar_position_infos()
 	
 	# changes cursor depending on drag type
 	if event is InputEventMouseMotion:

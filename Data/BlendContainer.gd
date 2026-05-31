@@ -8,7 +8,7 @@ var main_stream: AudioStreamSynchronized
 @export var rtpc: Array[RTPC]
 var selected_rtpcs: Dictionary = {}
 
-var debug: bool = true
+var debug: bool = false
 
 func _ready() -> void:
 	main_stream = self.stream
